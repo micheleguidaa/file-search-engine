@@ -43,33 +43,32 @@ public class Indexer {
 
         Analyzer perFieldAnalyzer = new PerFieldAnalyzerWrapper(new StandardAnalyzer(), perFieldAnalyzers);
 
-        Directory directory = FSDirectory.open(Paths.get(indexPath));
-        IndexWriterConfig config = new IndexWriterConfig(perFieldAnalyzer);
-        IndexWriter writer = new IndexWriter(directory, config);
-
-        for (File file : files) {
-            Document doc = new Document();
-
-            // Campo: nome file
-            doc.add(new StringField("filename", file.getName(), Field.Store.YES));
-
-            // Campo: contenuto file
-            StringBuilder sb = new StringBuilder();
-            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    sb.append(line).append("\n");
+        try (Directory directory = FSDirectory.open(Paths.get(indexPath))) {
+            IndexWriterConfig config = new IndexWriterConfig(perFieldAnalyzer);
+            try (IndexWriter writer = new IndexWriter(directory, config)) {
+                for (File file : files) {
+                    Document doc = new Document();
+                    
+                    // Campo: nome file
+                    doc.add(new StringField("filename", file.getName(), Field.Store.YES));
+                    
+                    // Campo: contenuto file
+                    StringBuilder sb = new StringBuilder();
+                    try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                        String line;
+                        while ((line = br.readLine()) != null) {
+                            sb.append(line).append("\n");
+                        }
+                    }
+                    doc.add(new TextField("content", sb.toString(), Field.Store.YES));
+                    
+                    writer.addDocument(doc);
+                    System.out.println("Indicizzato: " + file.getName());
                 }
+                
+                writer.commit();
             }
-            doc.add(new TextField("content", sb.toString(), Field.Store.YES));
-
-            writer.addDocument(doc);
-            System.out.println("Indicizzato: " + file.getName());
         }
-
-        writer.commit();
-        writer.close();
-        directory.close();
 
         System.out.println("Indicizzazione completata. Indice salvato in: " + indexPath);
     }
