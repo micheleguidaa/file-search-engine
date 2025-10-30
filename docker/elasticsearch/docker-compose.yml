@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  elasticsearch:
+    image: elastic/elasticsearch:8.19.6
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g      # 1GB RAM minimo per ES
+    ports:
+      - "9200:9200"   # API HTTP
+      - "9300:9300"   # Transport interno
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+
+volumes:
+  es_data:
+    driver: local
