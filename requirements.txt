@@ -1,5 +1,2 @@
 elasticsearch
-streamlit
 pandas
-requests
-numpy
