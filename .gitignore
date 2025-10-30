@@ -1,3 +1,6 @@
+# ===== files =====
+files/
+
 # ===== macOS =====
 .DS_Store
 __MACOSX/
