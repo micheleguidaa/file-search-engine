@@ -141,21 +141,54 @@ Nel complesso, i risultati confermano la **scalabilità e rapidità del processo
 
 ## Query usate per testare il sistema
 
-Il notebook supporta ricerche su entrambi i campi, con due famiglie di query:
-- `match` (ricerca lessicale, con analisi/stemming)
-- `match_phrase` (ricerca di frase esatta)
+Il notebook `elasticsearch.ipynb` implementa un'interfaccia interattiva che consente di effettuare ricerche su entrambi i campi indicizzati (`title` e `content`), supportando due tipologie di query Elasticsearch:
 
-Esempi (ripresi dall’interfaccia test del notebook):
-- Ricerca per titolo (match):
-  - `title: tiramisu`
-- Ricerca per frase esatta nel contenuto (match_phrase):
-  - `content: "burro e salvia"`
-- Ricerca per contenuto (match):
-  - `content: banane`
+### Tipologie di query supportate
 
-Caratteristiche aggiuntive:
-- Restituzione fino a 10.000 risultati per query (`size: 10000`).
-- Campo target esplicito (`title` o `content`), coerente con l’uso di analyzer italiano.
+1. **`match`** – Ricerca lessicale con analisi morfologica e stemming  
+   Applica l'analyzer italiano configurato, consentendo match anche su varianti morfologiche (plurali, genere, forme verbali).
+
+2. **`match_phrase`** – Ricerca di frase esatta  
+   Richiede che i termini compaiano nell'ordine specificato, preservando la sequenza lessicale originale.
+
+### Formato delle query
+
+L'interfaccia accetta query nel formato:
+```
+campo: termine_o_frase
+```
+
+Dove:
+- **campo** può essere `title` o `content`
+- **termine_o_frase** può essere:
+  - una o più parole (per query `match`)
+  - una frase racchiusa tra virgolette `"..."` (per query `match_phrase`)
+
+### Esempi di query utilizzate nei test
+
+**Ricerca per titolo (match)**:
+```
+title: tiramisu
+```
+Restituisce tutte le ricette il cui titolo contiene la parola *tiramisu* o sue varianti morfologiche.
+
+**Ricerca per frase esatta nel contenuto (match_phrase)**:
+```
+content: "burro e salvia"
+```
+Restituisce solo le ricette in cui il testo contiene esattamente la sequenza *"burro e salvia"*.
+
+**Ricerca per contenuto (match)**:
+```
+content: banane
+```
+Restituisce tutte le ricette il cui contenuto menziona *banane* (o sue varianti, come *banana*).
+
+### Caratteristiche dell'implementazione
+
+- **Restituzione completa dei risultati**: ogni query può restituire fino a **10.000 documenti** (`size: 10000`), garantendo la visualizzazione di tutti i match pertinenti anche su dataset di grandi dimensioni.
+- **Campo target esplicito**: l'utente specifica sempre se cercare in `title` o `content`, evitando ambiguità e consentendo query mirate.
+- **Coerenza linguistica**: entrambi i campi utilizzano l'analyzer italiano sia in fase di indicizzazione che di ricerca, assicurando risultati semanticamente rilevanti.
 
 ---
 
