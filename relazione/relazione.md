@@ -170,31 +170,4 @@ L’utilizzo della UI facilita l’ispezione dei documenti indicizzati (campi `t
 
 ---
 
-## Riferimenti tecnici principali
 
-- Indice: `index_recipes`
-- Mapping: campi `title` e `content` di tipo `text` con `analyzer: italian` e `search_analyzer: italian`
-- Indicizzazione: bulk con `helpers.bulk`
-- Dataset → File: generazione `.txt` per ricetta da `converter.ipynb`
-- Ambiente: Docker Compose (single‑node Elasticsearch)
-
----
-
-## Come riprodurre le misure (facoltativo)
-
-Senza eseguire nulla qui, i passi per ottenere i numeri da inserire nelle sezioni precedenti sono:
-1) Generare i file `.txt` a partire dal CSV eseguendo le celle di `converter.ipynb`.
-2) Avviare Elasticsearch con il docker compose fornito.
-3) Eseguire le celle di `elasticsearch.ipynb` per creare l’indice, indicizzare in bulk e misurare i tempi (la cella stampa il numero di documenti indicizzati e i secondi impiegati).
-4) Testare sia dal notebook sia da Kibana (UI) con le query di esempio.
-
-Inserire in questa relazione i valori osservati al punto 3.
-
----
-
-## Possibili estensioni
-
-- Sinonomi e stoplist personalizzate per il dominio culinario (es. equivalenze tra termini regionali/varianti ortografiche).
-- Evidenziazione (highlighting) dei termini di ricerca nei risultati.
-- Aggiunta di campi strutturati (ingredienti, tempi, difficoltà) e query combinate (full‑text + filtri).
-- Benchmark comparativo tra analyzer (italian vs standard, vs custom pipeline).
