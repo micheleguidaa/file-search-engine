@@ -16,7 +16,6 @@ for Information Retrieval tasks.
 - Supports both `match` and `match_phrase` queries  
 - Measures indexing time  
 - Accepts interactive user queries from the console  
-- Returns up to 10,000 search results per query  
 
 ---
 
