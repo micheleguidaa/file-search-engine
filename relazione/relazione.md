@@ -124,11 +124,11 @@ In particolare, le operazioni principali eseguite sono le seguenti:
 |---------------------------------|-----------------|
 | Numero di documenti indicizzati | 5 939           |
 | Indice di destinazione          | `index_recipes` |
-| Tempo totale di indicizzazione  | 5.105 s         |
+| Tempo totale di indicizzazione  | 1.65 s         |
 
 ### Discussione dei risultati
 
-Il tempo totale di **5.1 secondi** evidenzia l’elevata efficienza dell’indicizzazione in modalità *bulk*, che consente di minimizzare il numero di richieste HTTP verso il cluster Elasticsearch e di sfruttare in modo ottimale le risorse disponibili.  
+Il tempo totale di **1.65 secondi** evidenzia l’elevata efficienza dell’indicizzazione in modalità *bulk*, che consente di minimizzare il numero di richieste HTTP verso il cluster Elasticsearch e di sfruttare in modo ottimale le risorse disponibili.  
 
 Tale valore può tuttavia variare in funzione:
 - delle caratteristiche hardware della macchina ospite (CPU, I/O, memoria);
@@ -141,7 +141,7 @@ Nel complesso, i risultati confermano la **scalabilità e rapidità del processo
 
 ## Query usate per testare il sistema
 
-Il notebook `elasticsearch.ipynb` implementa un'interfaccia interattiva che consente di effettuare ricerche su entrambi i campi indicizzati (`title` e `content`), supportando due tipologie di query Elasticsearch:
+Il notebook `elasticsearch.ipynb` implementa un'interfaccia interattiva basata su due funzioni principali: `parse_and_search()` traduce query in linguaggio naturale (es. `tiramisu`, `title: arancini`, `"burro e salvia"`) in query Elasticsearch strutturate (`match`, `match_phrase`, `multi_match`); `search()` esegue la ricerca e formatta i risultati con highlighting automatico colorato a terminale.
 
 ### Tipologie di query supportate
 
@@ -153,10 +153,19 @@ Il notebook `elasticsearch.ipynb` implementa un'interfaccia interattiva che cons
 
 ### Formato delle query
 
-L'interfaccia accetta query nel formato:
+L'interfaccia accetta query nei seguenti formati:
+
+**Ricerca su entrambi i campi** (senza specificare il campo):
+```
+termine_o_frase
+```
+Esempio: `tiramisu` → cerca sia in `title` che in `content`
+
+**Ricerca field-specific**:
 ```
 campo: termine_o_frase
 ```
+Esempio: `title: carbonara` → cerca solo nel campo `title`
 
 Dove:
 - **campo** può essere `title` o `content`
@@ -166,41 +175,136 @@ Dove:
 
 ### Esempi di query utilizzate nei test
 
-**Ricerca per titolo (match)**:
-```
-title: tiramisu
-```
-Restituisce tutte le ricette il cui titolo contiene la parola *tiramisu* o sue varianti morfologiche.
+Per validare il comportamento dell'analyzer italiano e delle sue componenti nella pipeline di analisi, sono state formulate ed eseguite **10 query di test**, ciascuna progettata per verificare specifiche funzionalità linguistiche e limiti del sistema. Le query sono state categorizzate in base agli aspetti tecnici che intendono testare.
 
-**Ricerca per frase esatta nel contenuto (match_phrase)**:
-```
-content: "burro e salvia"
-```
-Restituisce solo le ricette in cui il testo contiene esattamente la sequenza *"burro e salvia"*.
+#### 1. Test del filtro `lowercase` – Case-insensitivity
 
-**Ricerca per contenuto (match)**:
-```
-content: banane
-```
-Restituisce tutte le ricette il cui contenuto menziona *banane* (o sue varianti, come *banana*).
+**Query**: `MOZZARELLA`
 
-### Caratteristiche dell'implementazione
+**Obiettivo**: Verificare che la ricerca sia case-insensitive grazie al filtro `lowercase`, che normalizza tutto il testo in minuscolo durante indicizzazione e query.
 
-- **Restituzione completa dei risultati**: ogni query può restituire fino a **10.000 documenti** (`size: 10000`), garantendo la visualizzazione di tutti i match pertinenti anche su dataset di grandi dimensioni.
-- **Campo target esplicito**: l'utente specifica sempre se cercare in `title` o `content`, evitando ambiguità e consentendo query mirate.
-- **Coerenza linguistica**: entrambi i campi utilizzano l'analyzer italiano sia in fase di indicizzazione che di ricerca, assicurando risultati semanticamente rilevanti.
+**Comportamento atteso**: La query deve recuperare documenti contenenti "mozzarella", "Mozzarella", "MOZZARELLA" o qualsiasi altra variante di capitalizzazione.
+
+**Risultato**: Confermata l'insensibilità al case; tutti i documenti contenenti il termine, indipendentemente dalla forma originale, vengono correttamente recuperati.
 
 ---
 
-## Uso di Kibana (UI)
+#### 2. Test del filtro `italian_elision` – Rimozione elisioni
 
-Oltre ai test via notebook, è stato utilizzato Kibana per interrogare l’indice tramite interfaccia grafica. Le attività svolte includono:
-- Creazione dell’index pattern per `index_recipes`.
-- Esecuzione di query di ricerca in Discover/Dev Tools (esempi equivalenti alle query sopra, usando `match` e `match_phrase`).
-- Verifica qualitativa dei risultati e del contributo dello stemming italiano nei match recuperati.
+**Query**: `content: l'origano`
 
-L’utilizzo della UI facilita l’ispezione dei documenti indicizzati (campi `title` e `content`) e l’affinamento iterativo delle query.
+**Obiettivo**: Testare la capacità del filtro `italian_elision` di rimuovere gli articoli elisi tipici della lingua italiana (es. *l'*, *dell'*, *dall'*).
+
+**Comportamento atteso**: Il termine viene normalizzato a "origano", consentendo il match con documenti che contengono sia "l'origano" che "origano".
+
+**Risultato**: Il sistema recupera correttamente entrambe le forme, confermando l'efficacia del filtro nella gestione delle elisioni.
 
 ---
+
+#### 3. Test del filtro `italian_stop` – Rimozione stopword
+
+**Query**: `"della panna"`
+
+**Obiettivo**: Verificare che le stopword italiane (come "della", "il", "di") vengano rimosse durante l'analisi, focalizzando la ricerca sui termini semanticamente rilevanti.
+
+**Comportamento atteso**: La stopword "della" viene ignorata; la query cerca effettivamente solo "panna".
+
+**Risultato**: I documenti recuperati contengono il termine "panna" anche in assenza della preposizione articolata "della", confermando il corretto funzionamento del filtro di stopword.
+
+---
+
+#### 4. Test dello stemmer – Normalizzazione plurali
+
+**Query**: `content: mirtilli`
+
+**Obiettivo**: Verificare che lo stemmer Snowball riduca correttamente i plurali alla forma base (*mirtillo/mirtilli → mirtill*).
+
+**Comportamento atteso**: La query deve recuperare documenti contenenti sia "mirtillo" che "mirtilli".
+
+**Risultato**: Entrambe le forme vengono correttamente unificate dalla radice comune, dimostrando l'efficacia dello stemming nella gestione delle variazioni numerali.
+
+---
+
+#### 5. Test dello stemmer – Variazioni di genere
+
+**Query**: `content: fritto`
+
+**Obiettivo**: Testare se lo stemmer gestisce le variazioni di genere e numero (fritto/fritta/fritti/fritte).
+
+**Comportamento atteso**: Tutte le forme devono essere ricondotte alla stessa radice (*fritt*), consentendo match reciproci.
+
+**Risultato**: Il sistema recupera documenti contenenti qualsiasi variazione morfologica del termine, confermando la capacità dello stemmer di normalizzare genere e numero.
+
+---
+
+#### 6. Test dello stemmer – Preservazione distinzioni semantiche
+
+**Query**: `title: pomodoro` vs `title: pomodorino`
+
+**Obiettivo**: Verificare che lo stemmer **leggero** (`light_italian`) preservi le distinzioni semantiche tra termini morfologicamente simili ma concettualmente diversi.
+
+**Comportamento atteso**: "pomodoro" e "pomodorino" devono **non** essere trattati come sinonimi, evitando l'over-stemming.
+
+**Risultato**: Le due query restituiscono insiemi di risultati **distinti**, confermando che lo stemmer mantiene le sfumature semantiche rilevanti nel dominio culinario. Questo comportamento previene falsi positivi che degraderebbero la qualità della ricerca.
+
+---
+
+#### 7. Test di ricerca field-specific – Campo `title`
+
+**Query**: `title: arancini`
+
+**Obiettivo**: Verificare la capacità di eseguire ricerche mirate su un singolo campo indicizzato (in questo caso il titolo della ricetta).
+
+**Comportamento atteso**: Vengono recuperati solo i documenti il cui **titolo** contiene il termine "arancini", ignorando eventuali occorrenze nel campo `content`.
+
+**Risultato**: La ricerca field-specific funziona correttamente, restituendo esclusivamente le ricette con "arancini" nel titolo.
+
+---
+
+#### 8. Test di ricerca field-specific – Campo `content`
+
+**Query**: `content: carbonara`
+
+**Obiettivo**: Testare la ricerca selettiva sul campo `content` (il corpo testuale della preparazione).
+
+**Comportamento atteso**: Solo i documenti che contengono "carbonara" nella descrizione della preparazione vengono restituiti, anche se il termine non compare nel titolo.
+
+**Risultato**: Il sistema isola correttamente i match nel campo specificato, dimostrando la flessibilità della ricerca multi-campo.
+
+---
+
+#### 9. Test delle limitazioni dello stemmer – False positives
+
+**Query**: `ciliegina`
+
+**Obiettivo**: Evidenziare un caso limite in cui lo stemmer può generare **falsi positivi** unificando termini semanticamente diversi ma morfologicamente simili.
+
+**Comportamento atteso**: Lo stemmer potrebbe ridurre sia "ciliegina" che "ciliegino" alla stessa radice (*ciliegin*), causando match indesiderati tra i due termini.
+
+**Risultato**: La query recupera documenti contenenti entrambe le forme, confermando che, in casi specifici, lo stemmer può introdurre ambiguità. Questo rappresenta un compromesso accettabile per mantenere lo stemming leggero e preservare la maggior parte delle distinzioni semantiche.
+
+---
+
+#### 10. Test delle limitazioni dello stemmer – Differenze morfologiche non gestite
+
+**Query**: `content: natalizi` vs `content: natale`
+
+**Obiettivo**: Verificare i limiti dello stemmer nella gestione di variazioni morfologiche derivazionali (aggettivo vs sostantivo).
+
+**Comportamento atteso**: "natalizi" (→ *nataliz*) e "natale" (→ *natal*) producono **stem diversi**, pertanto le due query restituiscono risultati **non sovrapposti**.
+
+**Risultato**: I documenti recuperati dalle due query sono distinti, dimostrando che lo stemmer leggero non unifica forme derivazionali distanti morfologicamente. Questo comportamento è **intenzionale** e coerente con l'approccio conservativo dello stemmer `light_italian`, che privilegia precisione su recall in casi ambigui.
+
+---
+
+### Considerazioni conclusive sulle query di test
+
+I test effettuati dimostrano che l'analyzer italiano implementato in Elasticsearch:
+- **Gestisce efficacemente** le variazioni morfologiche di base (plurali, genere, case, elisioni);
+- **Rimuove correttamente** le stopword, migliorando la qualità della ricerca;
+- **Preserva distinzioni semantiche** importanti grazie allo stemming leggero;
+- **Presenta limitazioni note** in casi di derivazioni morfologiche complesse (es. natale/natalizio) e in rari casi di over-stemming (es. ciliegina/ciliegino).
+
+Nel complesso, il trade-off tra normalizzazione morfologica e preservazione semantica risulta **ben bilanciato** per il dominio applicativo delle ricette culinarie, dove la precisione terminologica è spesso più importante del recall assoluto.
 
 
