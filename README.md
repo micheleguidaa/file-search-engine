@@ -1,34 +1,110 @@
-# Elasticsearch Recipe Indexer
+# Motore di Ricerca Ricette con Elasticsearch
 
-This project indexes a collection of recipe `.txt` files into **Elasticsearch**,  
-allowing full-text search in **Italian** across recipe titles and contents.
+## Descrizione
 
-It provides a compact and practical example of how to integrate Python with Elasticsearch  
-for Information Retrieval tasks.
+Questo progetto indicizza una collezione di ricette italiane (file `.txt`) in **Elasticsearch**,  
+consentendo la ricerca full-text in **italiano** tra titoli e contenuti delle ricette.
 
----
-
-## Features
-
-- Automatically creates (and resets) the `index_recipes` index  
-- Uses the built-in *Italian analyzer* for accurate text tokenization and stemming  
-- Performs efficient bulk indexing of `.txt` files  
-- Supports both `match` and `match_phrase` queries  
-- Measures indexing time  
-- Accepts interactive user queries from the console  
+Fornisce un esempio pratico e compatto di come integrare Python con Elasticsearch  
+per attività di Information Retrieval.
 
 ---
 
-## Requirements
+## Caratteristiche
 
-Install the required dependencies:
+- Crea (e resetta) automaticamente l'indice `index_recipes`  
+- Utilizza l'*analizzatore italiano* integrato per una corretta tokenizzazione e stemming del testo  
+- Esegue l'indicizzazione bulk efficiente dei file `.txt`  
+- Supporta query di tipo `match` e `match_phrase`  
+- Misura il tempo di indicizzazione  
+- Accetta query interattive dall'utente tramite console  
+
+---
+
+## Requisiti
+
+Installa le dipendenze necessarie:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-You also need a running Elasticsearch instance (for example, via Docker):
+È inoltre necessaria un'istanza di Elasticsearch in esecuzione (ad esempio, tramite Docker):
 
 ```bash
 docker compose -f docker/elasticsearch/docker-compose.yml up -d
 ```
+
+---
+
+## Struttura del Progetto
+
+```
+file-search-engine/
+├── converter.ipynb          # Notebook per convertire CSV in file di testo
+├── elasticsearch.ipynb      # Notebook per indicizzazione e ricerca
+├── requirements.txt         # Dipendenze Python
+├── dataset/
+│   └── recipe.csv          # Dataset originale delle ricette
+├── files/                  # File di testo delle ricette (generati)
+└── docker/
+    └── elasticsearch/      # Configurazione Docker per Elasticsearch
+        └── docker-compose.yml
+```
+
+---
+
+## Utilizzo
+
+### 1. Avvia Elasticsearch
+
+```bash
+docker compose -f docker/elasticsearch/docker-compose.yml up -d
+```
+
+### 2. Converti il Dataset
+
+Esegui il notebook `converter.ipynb` per generare i file `.txt` dalla CSV:
+
+```python
+# Converte dataset/recipe.csv in singoli file .txt nella cartella files/
+```
+
+### 3. Indicizza le Ricette
+
+Esegui il notebook `elasticsearch.ipynb` per:
+- Creare l'indice Elasticsearch
+- Indicizzare tutte le ricette
+- Effettuare ricerche interattive
+
+---
+
+## Esempio di Ricerca
+
+Dopo l'indicizzazione, puoi cercare ricette con query in linguaggio naturale:
+
+```
+Cerca: pasta al forno
+Cerca: tiramisù con mascarpone
+Cerca: dolci natalizi
+```
+
+Il sistema restituirà le ricette più pertinenti con i rispettivi punteggi di rilevanza.
+
+---
+
+## Tecnologie Utilizzate
+
+- **Python 3.x**
+- **Elasticsearch 8.x**
+- **Pandas** - Manipolazione dati
+- **Jupyter Notebook** - Ambiente di sviluppo interattivo
+- **Docker** - Containerizzazione di Elasticsearch
+
+---
+
+## Note
+
+- L'analizzatore italiano gestisce correttamente stemming e stop words
+- L'indicizzazione bulk migliora le performance per grandi dataset
+- L'indice viene ricreato ad ogni esecuzione per garantire consistenza
