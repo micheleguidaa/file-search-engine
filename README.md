@@ -1,5 +1,11 @@
 # Motore di Ricerca Ricette con Elasticsearch
 
+![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-9.x-005571?style=for-the-badge&logo=elasticsearch&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
+![Jupyter](https://img.shields.io/badge/Jupyter-F37626?style=for-the-badge&logo=jupyter&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+
 ## Descrizione
 
 Questo progetto indicizza una collezione di ricette italiane (file `.txt`) in **Elasticsearch**,  
@@ -96,7 +102,7 @@ Il sistema restituirà le ricette più pertinenti con i rispettivi punteggi di r
 ## Tecnologie Utilizzate
 
 - **Python 3.x**
-- **Elasticsearch 8.x**
+- **Elasticsearch 9.x**
 - **Pandas** - Manipolazione dati
 - **Jupyter Notebook** - Ambiente di sviluppo interattivo
 - **Docker** - Containerizzazione di Elasticsearch
