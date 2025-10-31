@@ -30,5 +30,5 @@ pip install -r requirements.txt
 You also need a running Elasticsearch instance (for example, via Docker):
 
 ```bash
-docker compose up -d
+docker compose -f docker/elasticsearch/docker-compose.yml up -d
 ```
