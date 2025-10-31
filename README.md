@@ -95,7 +95,7 @@ Cerca: tiramisù con mascarpone
 Cerca: dolci natalizi
 ```
 
-Il sistema restituirà le ricette più pertinenti con i rispettivi punteggi di rilevanza.
+Il sistema restituirà le ricette più pertinenti.
 
 ---
 
