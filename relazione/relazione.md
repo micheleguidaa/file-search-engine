@@ -215,7 +215,7 @@ Per validare il comportamento dell'analyzer italiano e delle sue componenti nell
 
 #### 4. Test dello stemmer – Normalizzazione plurali
 
-**Query**: `content: mirtilli`
+**Query**: `content:mirtillo`
 
 **Obiettivo**: Verificare che lo stemmer Snowball riduca correttamente i plurali alla forma base (*mirtillo/mirtilli → mirtill*).
 
@@ -227,7 +227,7 @@ Per validare il comportamento dell'analyzer italiano e delle sue componenti nell
 
 #### 5. Test dello stemmer – Variazioni di genere
 
-**Query**: `content: fritto`
+**Query**: `content:fritto`
 
 **Obiettivo**: Testare se lo stemmer gestisce le variazioni di genere e numero (fritto/fritta/fritti/fritte).
 
@@ -239,7 +239,7 @@ Per validare il comportamento dell'analyzer italiano e delle sue componenti nell
 
 #### 6. Test dello stemmer – Preservazione distinzioni semantiche
 
-**Query**: `title: pomodoro` vs `title: pomodorino`
+**Query**: `title:pomodorino` vs `title:pomodoro`
 
 **Obiettivo**: Verificare che lo stemmer **leggero** (`light_italian`) preservi le distinzioni semantiche tra termini morfologicamente simili ma concettualmente diversi.
 
@@ -249,27 +249,27 @@ Per validare il comportamento dell'analyzer italiano e delle sue componenti nell
 
 ---
 
-#### 7. Test di ricerca field-specific – Campo `title`
+#### 7. Test di normalizzazione degli accenti
 
-**Query**: `title: arancini`
+**Query**: `tiramisu`
 
-**Obiettivo**: Verificare la capacità di eseguire ricerche mirate su un singolo campo indicizzato (in questo caso il titolo della ricetta).
+**Obiettivo**: Verificare che l'analyzer gestisca correttamente la normalizzazione degli accenti, permettendo di trovare documenti indipendentemente dalla presenza di caratteri accentati.
 
-**Comportamento atteso**: Vengono recuperati solo i documenti il cui **titolo** contiene il termine "arancini", ignorando eventuali occorrenze nel campo `content`.
+**Comportamento atteso**: La query deve recuperare documenti contenenti sia "tiramisu" che "Tiramisù", dimostrando che la ricerca è insensibile agli accenti.
 
-**Risultato**: La ricerca field-specific funziona correttamente, restituendo esclusivamente le ricette con "arancini" nel titolo.
+**Risultato**: Il sistema recupera correttamente tutte le varianti con e senza accenti, confermando l'efficacia della normalizzazione Unicode integrata nell'analyzer.
 
 ---
 
-#### 8. Test di ricerca field-specific – Campo `content`
+#### 8. Test `match_phrase` con elisione
 
-**Query**: `content: carbonara`
+**Query**: `title: "spaghetti all'amatriciana"`
 
-**Obiettivo**: Testare la ricerca selettiva sul campo `content` (il corpo testuale della preparazione).
+**Obiettivo**: Testare la ricerca di **frase esatta** (con `match_phrase`) combinata con la gestione delle elisioni tipiche dell'italiano.
 
-**Comportamento atteso**: Solo i documenti che contengono "carbonara" nella descrizione della preparazione vengono restituiti, anche se il termine non compare nel titolo.
+**Comportamento atteso**: La query deve trovare documenti che contengono esattamente la sequenza "spaghetti all'amatriciana" nel titolo, gestendo correttamente l'elisione dell'articolo.
 
-**Risultato**: Il sistema isola correttamente i match nel campo specificato, dimostrando la flessibilità della ricerca multi-campo.
+**Risultato**: La ricerca di frase esatta funziona correttamente anche in presenza di elisioni, dimostrando l'integrazione efficace tra il filtro `italian_elision` e la query `match_phrase`.
 
 ---
 
@@ -285,15 +285,15 @@ Per validare il comportamento dell'analyzer italiano e delle sue componenti nell
 
 ---
 
-#### 10. Test delle limitazioni dello stemmer – Differenze morfologiche non gestite
+#### 10. Test delle limitazioni dello stemmer – Derivazioni morfologiche non gestite
 
-**Query**: `content: natalizi` vs `content: natale`
+**Query**: `natalizi`
 
 **Obiettivo**: Verificare i limiti dello stemmer nella gestione di variazioni morfologiche derivazionali (aggettivo vs sostantivo).
 
-**Comportamento atteso**: "natalizi" (→ *nataliz*) e "natale" (→ *natal*) producono **stem diversi**, pertanto le due query restituiscono risultati **non sovrapposti**.
+**Comportamento atteso**: La ricerca di "natalizi" (→ *nataliz*) non dovrebbe recuperare documenti contenenti "natale" (→ *natal*), dato che producono **stem diversi**.
 
-**Risultato**: I documenti recuperati dalle due query sono distinti, dimostrando che lo stemmer leggero non unifica forme derivazionali distanti morfologicamente. Questo comportamento è **intenzionale** e coerente con l'approccio conservativo dello stemmer `light_italian`, che privilegia precisione su recall in casi ambigui.
+**Risultato**: I documenti recuperati contengono effettivamente "natalizi" ma non "natale", dimostrando che lo stemmer leggero non unifica forme derivazionali distanti morfologicamente. Questo comportamento è **intenzionale** e coerente con l'approccio conservativo dello stemmer `light_italian`, che privilegia precisione su recall in casi ambigui.
 
 ---
 
@@ -306,5 +306,7 @@ I test effettuati dimostrano che l'analyzer italiano implementato in Elasticsear
 - **Presenta limitazioni note** in casi di derivazioni morfologiche complesse (es. natale/natalizio) e in rari casi di over-stemming (es. ciliegina/ciliegino).
 
 Nel complesso, il trade-off tra normalizzazione morfologica e preservazione semantica risulta **ben bilanciato** per il dominio applicativo delle ricette culinarie, dove la precisione terminologica è spesso più importante del recall assoluto.
+
+Per migliorare ulteriormente i risultati, sarebbe opportuno rivedere la configurazione dello stemmer, adottando regole più mirate e integrando un dizionario di sinonimi controllato, in modo da incrementare sia la precisione sia il recall complessivo del sistema.
 
 
